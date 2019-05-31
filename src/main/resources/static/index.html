@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>网络聊天室</title>
+    <link rel="stylesheet" href="/css/decorate.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/lib/axios.js"></script>
+    <script src="/lib/vue.js"></script>
+    <script src="/lib/qs.js"></script>
+    <script src="/lib/md5.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="roomlist white_bg">
+            <button class="createRoom small_btn" @click="createRoom()">创建房间</button>
+            <button class="flushRoom small_btn" @click="getRoomList()">刷新房间</button>
+            <div class="room" v-for="room in rooms">
+                <div @click="openRoom(room.id)">
+                    <p class="room_id">房间号: <span>{{room.id}}</span></p>
+                    <p class="room_name">{{room.name}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="rooms">
+            <div class="close" style="z-index: 97" v-if="chatRoom!=''" @click="closeRoom()">×</div>
+            <iframe :src="'chatroom.html?id='+chatRoom+'&token='+usertoken" frameborder="0" class="chat white_bg" v-if="chatRoom!=''">
+            </iframe>
+
+        </div>
+
+        <div id="head">
+            <div class="user_msg" v-if="isLogin==0">
+                <button class="small_btn" @click="openLogin()" >登录</button>
+            </div>
+            <div class="user_msg" v-if="isLogin==1">
+                {{user.nickname}}&emsp;&emsp;
+                <button class="small_btn" @click="logout()">注销</button>
+            </div>
+        </div>
+        <div class="cover" v-show="cover" v-cloak></div>
+        <div class="login popmenu" v-if="loginBox" v-cloak>
+            <div class="close" @click="closeLogin()">X</div>
+            <form action="" id="login_form">
+                <table>
+                    <tr>
+                        <td>用户名：</td>
+                        <td>
+                            <input type="text" name="username" id="lusername" class="username inputbox">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>密&emsp;码：</td>
+                        <td>
+                            <input type="password" name="password" id="lpassword" class="password inputbox">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div style="text-align: center">
+                                <button type="button" class="btn" @click="login()">登录</button>
+                                <button type="button" class="btn" @click="openRegister()">注册</button>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+        <div class="register popmenu" v-show="registerBox" v-cloak>
+            <div class="close" @click="closeLogin()">×</div>
+            <form action="">
+                <table>
+                    <tr>
+                        <td>用户名：</td>
+                        <td>
+                            <input type="text" name="username" id="username" class="inputbox" @blur="testUsername()">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>昵称：</td>
+                        <td>
+                            <input type="text" name="nickname" id="nickname" class="inputbox">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>密&emsp;码：</td>
+                        <td>
+                            <input type="password" name="password" id="password" class="inputbox">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>确认密码：</td>
+                        <td>
+                            <input type="password" name="confirm" id="confirm" class="inputbox">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div id="d_drag">
+                                <div id="d_bg"></div>
+                                <div id="d_text" onselectstart="return false;">请拖动滑块解锁</div>
+                                <div id="d_btn">&gt;&gt;</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div style="text-align: center">
+                                <input type="button" value="注册" class="btn" @click="register()">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</body>
+<script>
+var vm = new Vue({
+    el:"#app",
+    data:{
+        loginBox: 0,
+        registerBox: 0,
+        cover: 0,
+        isLogin:0,
+        user:{},
+        usertoken:"",
+        usernameIsOK:0,
+        success:0,
+        verify:0,
+        rooms:[{
+            id:'0001',
+            name:"test1"
+        },{
+            id:'0002',
+            name:"test2"
+        },{
+            id:'0003',
+            name:"test3"
+        },],
+        chatRoom: "",
+    },
+    methods: {
+        closeLogin(){
+            this.loginBox = 0;
+            this.registerBox = 0;
+            this.cover = 0;
+        },
+
+        openLogin(){
+            this.loginBox = 1;
+            this.registerBox = 0;
+            this.cover = 1;
+        },
+
+        openRegister(){
+            this.loginBox = 0;
+            this.registerBox = 1;
+            this.cover = 1;
+            
+
+            //滑块验证
+            var $ = function (selector) {
+                        return document.getElementById(selector);
+                    };
+            var box = $("d_drag"), //容器
+                bg = $("d_bg"), //背景
+                text = $("d_text"), //文字
+                btn = $("d_btn"); //滑块
+            var distance = 260; //滑动成功的宽度（距离）
+            var vue_this = this;
+
+            this.success = 0;
+            btn.style.left = 0;
+            bg.style.width = 0;
+            text.innerText="请拖动滑块解锁";
+            text.style.color="#000";
+            btn.innerHTML="&gt;&gt;"
+            bg.style.backgroundColor="#75CDF9"
+
+            //二、给滑块注册鼠标按下事件
+            btn.onmousedown = function (e) {
+
+                //1.鼠标按下之前必须清除掉后面设置的过渡属性
+                btn.style.transition = "";
+                bg.style.transition = "";
+
+                //说明：clientX 事件属性会返回当事件被触发时，鼠标指针向对于浏览器页面(或客户区)的水平坐标。
+
+                //2.当滑块位于初始位置时，得到鼠标按下时的水平位置
+                var e = e || window.event;
+                var downX = e.clientX;
+
+                //三、给文档注册鼠标移动事件
+                document.onmousemove = function (e) {
+
+                    var e = e || window.event;
+                    //1.获取鼠标移动后的水平位置
+                    var moveX = e.clientX;
+
+                    //2.得到鼠标水平位置的偏移量（鼠标移动时的位置 - 鼠标按下时的位置）
+                    var offsetX = moveX - downX;
+
+                    //3.在这里判断一下：鼠标水平移动的距离 与 滑动成功的距离 之间的关系
+                    if (offsetX > distance) {
+                        offsetX = distance; //如果滑过了终点，就将它停留在终点位置
+                    } else if (offsetX < 0) {
+                        offsetX = 0; //如果滑到了起点的左侧，就将它重置为起点位置
+                    }
+
+                    //4.根据鼠标移动的距离来动态设置滑块的偏移量和背景颜色的宽度
+                    btn.style.left = offsetX + "px";
+                    bg.style.width = offsetX + "px";
+
+                    //如果鼠标的水平移动距离 = 滑动成功的宽度
+                    if (offsetX == distance) {
+
+                        //1.设置滑动成功后的样式
+                        text.innerHTML = "验证通过";
+                        text.style.color = "#fff";
+                        btn.innerHTML = "&radic;";
+                        btn.style.color = "green";
+                        bg.style.backgroundColor = "lightgreen";
+
+                        //2.设置滑动成功后的状态
+                        vue_this.success = true;
+                        //成功后，清除掉鼠标按下事件和移动事件（因为移动时并不会涉及到鼠标松开事件）
+                        btn.onmousedown = null;
+                        document.onmousemove = null;
+
+                        //3.成功解锁后的回调函数
+                        setTimeout(function () {
+                        }, 100);
+                    }
+                }
+
+                //四、给文档注册鼠标松开事件
+                document.onmouseup = function (e) {
+
+                    //如果鼠标松开时，滑到了终点，则验证通过
+                    if (vue_this.success) {
+                        return;
+                    } else {
+                        //反之，则将滑块复位（设置了1s的属性过渡效果）
+                        btn.style.left = 0;
+                        bg.style.width = 0;
+                        btn.style.transition = "left 1s ease";
+                        bg.style.transition = "width 1s ease";
+                    }
+                    //只要鼠标松开了，说明此时不需要拖动滑块了，那么就清除鼠标移动和松开事件。
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                }
+
+            }
+        },
+
+        login(){
+            var username = document.getElementById("lusername").value;
+            var password = document.getElementById("lpassword").value;
+            if(username=="" || password==""){
+                alert("请完整输入用户名和密码");
+                return;
+            }
+            var params = new URLSearchParams();
+            params.append("username",username);
+            params.append("password", hex_md5(password));
+            axios.post("/login",params)
+            .then(res => {
+                var resdata = res.data;
+                console.log(resdata);
+                if(resdata!=""){
+                    localStorage.token = JSON.stringify(resdata);
+                    this.user = eval('('+resdata.userJson+')')
+                    this.isLogin = 1;
+                    this.closeLogin();
+                }else{
+                    alert("用户名或密码错误");
+                }
+            })
+            .catch(err => {
+                console.error(err); 
+            })
+            
+        },
+        register(){
+            var username = document.getElementById("username").value;
+            var nickname = document.getElementById("nickname").value;
+            var password = document.getElementById("password").value;
+            var confirm = document.getElementById("confirm").value;
+
+            if(this.success==0){
+                alert("请先完成验证");
+                return;
+            }
+            if(this.usernameIsOK==0){
+                alert("用户名不合法");
+                return;
+            }
+            if(username && nickname && password){
+                if(password==confirm){
+                    var params = {
+                        "username":username,
+                        "nickname":nickname,
+                        "password":hex_md5(password)
+                    }
+                    axios.post("/register",Qs.stringify(params))
+                    .then(res => {
+                        if(res.data!=0){
+                            alert("注册成功");
+                            this.openLogin();
+                        }else{
+                            alert("注册失败");
+                        }
+                        console.log(res)
+                    })
+                    .catch(err => {
+                        console.error(err); 
+                    })
+                }else{
+                    alert("两次密码不一致");
+                }
+            }else{
+                alert("请完整填写信息");
+            }
+
+        },
+
+        testUsername(){
+            var username = document.getElementById("username").value;
+            if(username || username==""){
+                retrun;
+            }
+            axios.get("exist?username="+username)
+            .then(res => {
+                if(res.data=="1"){
+                    alert("用户名已存在");
+                }
+                else{
+                    this.usernameIsOK = 1;
+                }
+            })
+            .catch(err => {
+                console.error(err); 
+            })
+        },
+
+        logout(){
+            this.isLogin = 0;
+            this.user={};
+            localStorage.token="";
+        },
+        closeRoom(){
+            this.chatRoom="";
+        },
+        openRoom(id){
+            var tokenJson = localStorage.token;
+            if(tokenJson){
+                axios.post("verify",Qs.stringify({"tokenJson":tokenJson}))
+                .then(res => {
+                    var resdata = res.data;
+                    console.log(resdata);
+                    if(resdata!=""){
+                        localStorage.token = JSON.stringify(resdata);
+
+                        this.chatRoom=id;
+                        this.usertoken=resdata.rsacode;
+                    }else{
+                        alert("请先登录");
+                    }
+                    console.log(res)
+                })
+                .catch(err => {
+                    alert("请先登录");
+                    console.error(err);
+                })
+            }
+        },
+        createRoom(){
+            var tokenJson = localStorage.token;
+            axios.post("create_room", Qs.stringify({ "tokenJson": tokenJson }))
+            .then(res => {
+                console.log(res)
+                if(res.data=="0"){
+                    alert("您当前无法创建房间");
+                }else{
+                    this.getRoomList();
+                    alert("房间创建成功！");
+                }
+            })
+            .catch(err => {
+                console.error(err); 
+            })
+        },
+        getRoomList(){
+            axios.post("room_list")
+            .then(res => {
+                console.log(res)
+                var dt = res.data;
+                if (dt) {
+                    this.rooms = [];
+                    var i = 0;
+                    for(var key in dt){
+                        this.rooms[i] = {
+                            "id":key,
+                            "name":dt[key]
+                        }
+                        i++;
+                    }
+                } else {
+                    alert("服务器繁忙")
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            })
+        },
+    },
+    mounted() {
+        this.getRoomList();
+        var tokenJson = localStorage.token;
+        if(tokenJson){
+            axios.post("verify",Qs.stringify({"tokenJson":tokenJson}))
+            .then(res => {
+                var resdata = res.data;
+                console.log(resdata);
+                if(resdata!=""){
+                    localStorage.token = JSON.stringify(resdata);
+                    this.user = eval('('+resdata.userJson+')')
+                    this.isLogin = 1;
+                    this.closeLogin();
+                }
+                console.log(res)
+            })
+            .catch(err => {
+                console.error(err); 
+            })
+        }
+        // alert(hex_md5("123456"))
+
+    },
+})
+</script>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/css/room.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/lib/vue.js"></script>
+    <script src="/js/date.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="message">
+            <div id="welcome">欢迎来到{{id}}号房间</div>
+            <div v-for="msg in message" class="msgs">
+                <p class="title">{{msg.user}}&emsp;{{msg.date}}</p>
+                <p class="info">{{msg.info}}</p>
+            </div>
+        </div>
+        <div id="send">
+            <div>
+                <textarea id="text" name="text" class="send_msg_box" @keyup.enter="send()"></textarea>
+            </div>
+            <button @click="send()" class="btn" id="send_btn">发送</button>
+        </div>
+    </div>
+</body>
+<script src="/lib/md5.js"></script>
+<script type="text/javascript">
+
+    var vm = new Vue({
+        el:'#app',
+        data:{
+            id:"",
+            token:"",
+            websocket:null,
+            message:[],
+            user:{}
+        },
+        methods: {
+            setMessageInnerHTML(innerHTML){
+                var data = innerHTML;
+                if(data.info){
+                    this.message.push(data);
+                    console.log(this.message);
+                }else if(data && data[0] && data[0].info){
+                    this.message = this.message.concat(data);
+                }
+            },
+
+            send(){
+                var doc = document.getElementById('text');
+                var msg = doc.value;
+                if(msg!=""){
+                    var nickname = "（我）"+this.user.nickname;
+                    var msgs = {
+                        'date':FormatDate("yyyy-M-d H:m:s",new Date()),
+                        'user':nickname,
+                        'info':msg,
+                    }
+                    this.setMessageInnerHTML(msgs)
+                    doc.value="";
+                    this.websocket.send(msgs.info);
+                }
+            },
+
+            receive(event){
+                console.log(JSON.parse(event.data));
+                this.setMessageInnerHTML(JSON.parse(event.data));
+            }
+        },
+        mounted() {
+            var url = document.location.toString();
+            var arrUrl = url.split("?");
+            var paras = arrUrl[1].split("&");
+            url = arrUrl[0].substr(0, arrUrl[0].lastIndexOf("/"));
+            for(var i=0;i<paras.length;++i){
+                para = paras[i].split("=");
+                if(para[0]=="id"){
+                    this.id = para[1];
+                }
+                else if(para[0]=="token"){
+                    this.token = para[1];
+                }
+            }
+            //判断当前浏览器是否支持WebSocket
+            url = "ws"+url.substr(4, url.length)
+            url = url + "/talkroom/"+this.id+"/"+this.token;
+            if('WebSocket' in window){
+                this.websocket = new window.WebSocket(url);
+            }
+            else{
+                alert('Not support websocket');
+            }
+
+            //连接发生错误的回调方法
+            this.websocket.onerror = function(){
+                alert("网络连接错误");
+            };
+
+            //连接成功建立的回调方法
+            this.websocket.onopen = function(event){
+                console.log("服务器连接成功");
+            }
+
+            //接收到消息的回调方法
+            this.websocket.onmessage = this.receive;
+
+            //连接关闭的回调方法
+            this.websocket.onclose = function(){
+            }
+
+            //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+            window.onbeforeunload = function(){
+                this.websocket.close();
+            }
+
+            this.user = JSON.parse(JSON.parse(localStorage.token).userJson);
+        },
+    })
+</script>
+</html>

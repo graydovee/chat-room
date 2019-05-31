@@ -1,0 +1,167 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+body{
+    background-image: url('/img/bg.jpg')
+}
+
+.cover {
+    position: absolute;
+    width: 100%;
+    height:100%;
+    background-color: #888888;
+    opacity: 0.6;
+    z-index: 99;
+}
+
+.popmenu {
+    background-color:#253840;
+    width: 40vw;
+    height: 40vh;
+    margin-left: 30vw;
+    margin-top: 20vh;
+    position: absolute;
+    opacity:1.2;
+    z-index: 100;
+}
+.popmenu form {
+    padding-top: 5vh;
+}
+.popmenu form table tr td {
+    color: #F2EDE4;
+    font-size: 20px;
+} 
+
+.popmenu form table {
+    width:20vw;
+    margin-left:10vw;
+}
+
+.login form table tr {
+    height: 10vh;
+}
+.register form table tr {
+    height: 5vh;
+}
+
+.inputbox{
+    font-size: 16px;
+    width: 12vw;
+    height: 3vh;
+}
+
+.verification{
+    font-size: 16px;
+    width: 6vw;
+    height: 3vh;
+}
+
+.verificationImg{
+    width: 6vw;
+    height: 4vh;
+    position: relative;
+    top:1.2vh;
+}
+
+
+
+
+#head{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6vh;
+    background-color: #253840
+}
+
+.user_msg {
+    position: absolute;
+    top: 1.2vh ;
+    right:5vw;
+    color: white;
+}
+
+.user_msg div {
+    position: relative;
+    float: left;
+    color: white;
+    width: 200px;
+}
+
+.white_bg{
+    background-color: white;
+}
+
+.roomlist {
+    position: absolute;
+    top: 12vh;
+    left: 8vw;
+    width: 20vw;
+    height: 80vh;
+    overflow: auto;
+    background-color: #CCD6D9;
+}
+
+.room{
+    position: relative;
+    width: 90%;
+    height: 10%;
+    background-color: #547C8C;
+    border-radius: 10px;
+    padding: 2% 5%;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.room div{
+    background-color: #809BA6;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    color: white;
+}
+
+.room_id {
+    padding-left: 5%;
+}
+
+.room_name{
+    text-align: center;
+    font-size: 22px;
+}
+
+.room:hover{
+    background-color: #1B4859;
+}
+
+.chat {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+}
+
+.rooms{
+    position: absolute;
+    top: 12vh;
+    left: 30vw;
+    width: 60vw;
+    height: 80vh;
+    background-color: white;
+}
+
+.createRoom{
+    position: fixed;
+    z-index: 97;
+    bottom: 5vh;
+    left: 24vw;
+}
+.flushRoom{
+    position: fixed;
+    z-index: 97;
+    bottom: 5vh;
+    left: 8vw;
+}

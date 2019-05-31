@@ -1,0 +1,47 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+#send{
+    position: fixed;
+    width: 100%;
+    height: 30%;
+    top:70%;
+    background-color: #F2EDD5;
+    padding-left: 5vw;
+    padding-top: 2vh;
+}
+
+#message{
+    position: absolute;
+    background-color: #C1D9CE;
+    width: 90%;;
+    height: 60%;
+    overflow: auto;
+    padding: 5% 5%;
+}
+
+.send_msg_box{
+    resize:none;
+    width: 90%;
+    height: 20vh;
+}
+
+#send_btn{
+    position: absolute;
+    right: 15vh;
+}
+.msgs{
+    padding: 1vh 1vw;
+}
+
+.info{
+    padding: 1vh 5vw;
+}
+
+#welcome{
+    position: absolute;
+    text-align: center;
+    top:5vh;
+    left: 40vw;
+}
